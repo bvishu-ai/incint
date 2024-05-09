@@ -1,6 +1,7 @@
 import "../styles/success.css";
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from 'axios';
 
 function TimeSelect() {
   const appointmentData = useMemo(() => [
@@ -143,49 +144,63 @@ function TimeSelect() {
   const [selectedSlot, setSelectedSlot] = useState("");
 
   const appointmentType = sessionStorage.getItem("apptype");
-  const procedureType = sessionStorage.getItem("proc");
+  let procedureType = sessionStorage.getItem("proc");
+  if(appointmentType==='Consultation')
+  {
+    procedureType = '';
+  }
   const department = sessionStorage.getItem("department");
+
+  const data = {
+    department: department,
+    appointmentType: appointmentType,
+    selectedProcedure: procedureType
+  };
 
   useEffect(() => {
 	  console.log("Running useEffect for doctors.");
 	  console.log("Filtering doctors with conditions:", appointmentType, procedureType, department);
 	  
-	  const filteredDoctors = Array.from(
-      new Set(
-        appointmentData
-          .filter(
-            (item) =>
-              item.appointmenttype === appointmentType &&
-              (item.proceduretype === procedureType || (appointmentType === "Consultation" && !item.proceduretype)) &&
-              item.department.toLowerCase() === department.toLowerCase()
-          )
-          .map((item) => item.doctorname)
-      )
-    );
-
-	  console.log("Filtered Doctors:", filteredDoctors);
-	  setDoctors(filteredDoctors);
+    let docs=[];
+  axios.post('http://localhost:5000/slots/doctors', data)
+    .then(response => {
+      if (response.status === 200) {
+        docs = response.data.docs.map(row => row.doctorname); // Extract doctor names from result.rows
+        const uniqueDoctorNames = Array.from(new Set(docs));
+        setDoctors(uniqueDoctorNames);
+      } else {
+        console.error('Error:', response.data.error);
+      }
+    })
+    .catch(error => console.error('Error:', error));
+    console.log("Filtered Doctors: ", doctors);
 	}, [appointmentData, appointmentType, procedureType, department]);
+
+  const data2 = {
+    department: department,
+    appointmentType: appointmentType,
+    selectedProcedure: procedureType,
+    selectedDoctor: selectedDoctor
+  };
 
 	useEffect(() => {
 	  console.log("Running useEffect for doctorSlots.");
 	  console.log("Selected Doctor:", selectedDoctor);
 	  console.log("Filtering slots with conditions:", selectedDoctor, appointmentType, procedureType, department);
-	  
-	  const filteredSlots = appointmentData
-	    .filter(
-	      (item) =>
-	        item.doctorname === selectedDoctor &&
-	        item.appointmenttype === appointmentType &&
-	        (item.proceduretype === procedureType || (appointmentType === "Consultation" && !item.proceduretype)) &&
-	        item.department.toLowerCase() === department.toLowerCase()
-	    )
-	    .map((item) => item.timeslot);
 
-	  console.log("Filtered Slots:", filteredSlots);
-	  setDoctorSlots(filteredSlots);
+    let slots=[];
+  axios.post('http://localhost:5000/slots/times', data2)
+    .then(response => {
+      if (response.status === 200) {
+        slots = response.data.slots.map(row => row.timeslot); // Extract slots from result.rows
+        setDoctorSlots(slots);
+      } else {
+        console.error('Error:', response.data.error);
+      }
+    })
+    .catch(error => console.error('Error:', error));
+    console.log("Filtered Slots:", doctorSlots);
 	}, [appointmentData, selectedDoctor, appointmentType, procedureType, department]);
-
 
   const handleDoctorChange = (e) => {
     const doctorName = e.target.value;

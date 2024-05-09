@@ -9,67 +9,56 @@ router.get("/", function (req, res, next) {
 });
 
 router.post("/doctors", function (req, res) {
-  const { department, procedureType } = req.body;
-
-  pool.query(
-    `SELECT doctorname FROM availableslots WHERE department=$1 AND proceduretype=$2`,
-    [department, procedureType],
-    (error, result) => {
-      if (error) {
-        console.error("Error executing query:", error);
-        res.status(500).send("Internal Server Error");
-      } else {
-        if (result.rows.length === 0) {
-          res.status(404).send("No doctors found for the selected criteria");
-        } else {
-          const doctorNames = result.rows.map(row => row.doctorname);
-          res.send(doctorNames);
-        }
-      }
+  const data = req.body;
+  console.log(data);
+  query = `SELECT doctorname FROM availableslots WHERE department=$1 AND appointmenttype=$2 AND (proceduretype = $3 OR proceduretype IS NULL)`;
+  
+  // Prepare the values array based on the data
+    const values = [
+      data.department,
+      data.appointmentType,
+      data.selectedProcedure
+    ];
+  
+  // Example database query to retrieve doctors
+  pool.query(query, values, (err, result) => {
+    if (err) {
+      console.error('Error fetching doctors:', err);
+      res.status(500).json({ error: 'Error fetching doctors' });
+    } else {
+      const docs = result.rows; // Assuming the query returns slots data
+	  console.log('Rows:', result.rows);
+      // Now, send the slots data in the response
+      res.status(200).json({ docs });
     }
-  );
+  });
 });
 
-router.post("/time", function (req, res) {
-  const { doctorName } = req.body;
-
-  pool.query(
-    `SELECT timeslot FROM availableslots WHERE doctorname=$1`,
-    [doctorName],
-    (error, result) => {
-      if (error) {
-        console.error("Error executing query:", error);
-        res.status(500).send("Internal Server Error");
-      } else {
-        if (result.rows.length === 0) {
-          res.status(404).send("No available time slots for the selected doctor");
-        } else {
-          const timeSlots = result.rows.map(row => row.timeslot);
-          res.send(timeSlots);
-        }
-      }
+router.post("/times", function (req, res) {
+  const data = req.body;
+  console.log(data);
+  query = `SELECT timeslot FROM availableslots WHERE department=$1 AND appointmenttype=$2 AND (proceduretype = $3 OR proceduretype IS NULL) AND doctorname = $4`;
+  
+  // Prepare the values array based on the data
+    const values = [
+      data.department,
+      data.appointmentType,
+      data.selectedProcedure,
+	  data.selectedDoctor
+    ];
+  
+  // Example database query to retrieve slots for a specific doctor
+  pool.query(query, values, (err, result) => {
+    if (err) {
+      console.error('Error fetching slots:', err);
+      res.status(500).json({ error: 'Error fetching slots' });
+    } else {
+      const slots = result.rows; // Assuming the query returns slots data
+	  console.log('Rows:', result.rows);
+      // Now, send the slots data in the response
+      res.status(200).json({ slots });
     }
-  );
-});
-
-router.post("/depts", function (req, res) {
-
-  pool.query(
-    `SELECT (UNIQUE)departmentname FROM doctors`,
-    (error, result) => {
-      if (error) {
-        console.error("Error executing query:", error);
-        res.status(500).send("Internal Server Error");
-      } else {
-        if (result.rows.length === 0) {
-          res.status(404).send("No available time slots for the selected doctor");
-        } else {
-          const departs = result.rows.map(row => row.departmentname);
-          res.send(deptarts);
-        }
-      }
-    }
-  );
+  });
 });
 
 module.exports = router;

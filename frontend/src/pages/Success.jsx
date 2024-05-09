@@ -1,13 +1,27 @@
 import { useNavigate } from "react-router-dom";
+import axios from 'axios';
 
 const Success = () => {
   const department = sessionStorage.getItem('department');
-  const proc = sessionStorage.getItem('proc');
   const dates = sessionStorage.getItem('dates');
   const apptype = sessionStorage.getItem('apptype');
+  let proc = sessionStorage.getItem("proc");
+  if(apptype==='Consultation')
+  {
+    proc = '';
+  }
   const doc = sessionStorage.getItem('Doc');
  	const slot = sessionStorage.getItem('Slot');
   const navigate = useNavigate();
+
+  const data = {
+	  department: department,
+	  appointmentDate: dates,
+	  appointmentType: apptype,
+	  selectedProcedure: proc,
+	  doctorName: doc,
+	  slotTiming: slot
+	};
 
   const gohome = async (e) => {
     e.preventDefault();
@@ -28,6 +42,17 @@ const Success = () => {
       return error;
     }
   };
+
+  axios.post('http://localhost:5000/save-data/save', data)
+  .then(response => {
+    if (response.status === 200) {
+      console.log(response.data.message);
+      console.log('Inserted Rows:', response.data.insertedRowCount);
+    } else {
+      console.error('Error:', response.data.error);
+    }
+  })
+  .catch(error => console.error('Error:', error));
 
   return (
     <section className="success-section flex-center">
